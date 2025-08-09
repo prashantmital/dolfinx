@@ -50,6 +50,7 @@ from dolfinx import mesh as dmesh
 
 
 def make_geometry():
+    """Geometry: define the physical size of the beam in 3D space (L, W, H)."""
     L = 1.0
     W = 0.1
     H = 0.1
