@@ -85,6 +85,7 @@ def sigma(u, lmbda, mu, gdim):
 
 
 def apply_boundary_conditions(msh, V):
+    """Boundary conditions: clamp the x=0 face by enforcing u = 0 on that boundary."""
     def on_clamped(x):
         return np.isclose(x[0], 0.0)
 
@@ -189,6 +190,7 @@ def analyze_and_export(msh, uh, lmbda, mu, out_dir="out_cantilever"):
 
 
 def main():
+    """Pipeline: geometry → discretization → BCs → forms → assembly → solver → analysis/output."""
     L, W, H = make_geometry()
     msh, V = discretize(L, W, H)
     E, nu, lmbda, mu = material()
