@@ -58,6 +58,7 @@ def make_geometry():
 
 
 def discretize(L, W, H, nx=30, ny=6, nz=6):
+    """Discretization: create a volumetric mesh and vector-valued function space."""
     msh = dmesh.create_box(
         MPI.COMM_WORLD,
         [np.array([0.0, 0.0, 0.0]), np.array([L, W, H])],
@@ -69,6 +70,7 @@ def discretize(L, W, H, nx=30, ny=6, nz=6):
 
 
 def material():
+    """Material: return steel properties and Lamé parameters (E, nu, lambda, mu)."""
     E = 210e9
     nu = 0.3
     mu = E / (2.0 * (1.0 + nu))
@@ -77,10 +79,12 @@ def material():
 
 
 def epsilon(u):
+    """Strain operator: small-strain tensor ε(u) = sym(grad(u))."""
     return ufl.sym(ufl.grad(u))
 
 
 def sigma(u, lmbda, mu, gdim):
+    """Stress law: linear elasticity σ(u) = 2μ ε(u) + λ tr(ε(u)) I."""
     return 2.0 * mu * epsilon(u) + lmbda * ufl.tr(epsilon(u)) * ufl.Identity(gdim)
 
 
@@ -97,6 +101,7 @@ def apply_boundary_conditions(msh, V):
 
 
 def build_measures_and_load(msh, L, traction_mag=1e6, traction_dir=(0.0, 0.0, -1.0)):
+    """Measures and load: mark end face (x=L) and define the traction vector."""
     tdim = msh.topology.dim
     fdim = tdim - 1
     msh.topology.create_connectivity(fdim, tdim)
@@ -115,6 +120,7 @@ def build_measures_and_load(msh, L, traction_mag=1e6, traction_dir=(0.0, 0.0, -1
 
 
 def build_forms(msh, V, lmbda, mu, ds, t_vec):
+    """Matrix construction (forms): build bilinear form a and linear form L."""
     u = ufl.TrialFunction(V)
     v = ufl.TestFunction(V)
     a = ufl.inner(sigma(u, lmbda, mu, msh.geometry.dim), epsilon(v)) * ufl.dx
@@ -123,6 +129,7 @@ def build_forms(msh, V, lmbda, mu, ds, t_vec):
 
 
 def assemble_system(a, L_form, bcs):
+    """Matrix construction (assembly): assemble global matrix A and RHS vector b, applying BCs."""
     A = fem_petsc.assemble_matrix(form(a), bcs=bcs)
     A.assemble()
 
@@ -134,6 +141,7 @@ def assemble_system(a, L_form, bcs):
 
 
 def solve_system(A, b, V, ksp_type="preonly", pc_type="lu", options_prefix="cantilever_"):
+    """Linear solver: configure PETSc KSP and solve for the displacement field uh."""
     ksp = PETSc.KSP().create(MPI.COMM_WORLD)
     ksp.setOptionsPrefix(options_prefix)
     ksp.setOperators(A)
@@ -149,6 +157,7 @@ def solve_system(A, b, V, ksp_type="preonly", pc_type="lu", options_prefix="cant
 
 
 def analyze_and_export(msh, uh, lmbda, mu, out_dir="out_cantilever"):
+    """Analysis and results: compute strain/stress fields and export XDMF files for visualization."""
     TenSpace = functionspace(msh, ("DG", 0, (msh.geometry.dim, msh.geometry.dim)))
 
     eps_func = Function(TenSpace)
